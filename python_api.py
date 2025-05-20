@@ -16,6 +16,11 @@ import re
 from sklearn.preprocessing import MinMaxScaler
 import os
 
+
+print("All imports successful!", file=sys.stderr)
+sys.stderr.flush()
+
+
 # --- Flask App Initialization ---
 app = Flask(__name__)
 
