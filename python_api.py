@@ -271,13 +271,15 @@ def get_all_movies():
         return jsonify({"error": "Internal server error getting all movies"}), 500
 
 
+print("About to call load_data_and_build_model()", file=sys.stderr)
+sys.stderr.flush()
+load_data_and_build_model() # This will now run when the module is imported by Gunicorn
+
 if __name__ == '__main__':
-    # Add this print statement right before the function call
-    print("About to call load_data_and_build_model()", file=sys.stderr)
+    # This block is primarily for running the script directly for local testing
+    # Gunicorn does NOT execute this block
+    print("Running Flask development server (This should not appear in Render logs when using Gunicorn)", file=sys.stderr)
     sys.stderr.flush()
-    # Load data and build model when the script starts
-    load_data_and_build_model()
-    # Run the Flask development server
     import os
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
