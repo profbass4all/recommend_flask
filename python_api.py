@@ -1,4 +1,6 @@
 # python_api.py
+print("Python script started!", file=sys.stderr)
+
 from flask import Flask, request, jsonify
 import pandas as pd
 from io import StringIO
