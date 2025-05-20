@@ -18,18 +18,18 @@ movie_collection = None
 combined_similarity = None
 indices = None
 
-# def read_gd(sharingurl):
-#     try:
-#         file_id = sharingurl.split('/')[-2]
-#         download_url = 'https://drive.google.com/uc?export=download&id=' + file_id
+def read_gd(sharingurl):
+    try:
+        file_id = sharingurl.split('/')[-2]
+        download_url = 'https://drive.google.com/uc?export=download&id=' + file_id
         
-#         response = requests.get(download_url)
-#         response.raise_for_status() 
-#         csv_raw = StringIO(response.text)
-#         return csv_raw
-#     except Exception as e:
-#         print(f"Error reading Google Drive file: {e}", file=sys.stderr)
-#         return None 
+        response = requests.get(download_url)
+        response.raise_for_status() 
+        csv_raw = StringIO(response.text)
+        return csv_raw
+    except Exception as e:
+        print(f"Error reading Google Drive file: {e}", file=sys.stderr)
+        return None 
 
 
 def get_recommendations_from_loaded_data(movie_title, movie_collection, combined_similarity, indices, top_n=6):
