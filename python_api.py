@@ -1,10 +1,11 @@
 # python_api.py
+import sys
+
 print("Python script started!", file=sys.stderr)
 
 from flask import Flask, request, jsonify
 import pandas as pd
 from io import StringIO
-import sys
 import json
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
