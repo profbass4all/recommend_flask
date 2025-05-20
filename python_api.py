@@ -67,35 +67,38 @@ def get_recommendations_from_loaded_data(movie_title, movie_collection, combined
         print(f'An error occurred during recommendation lookup: {e}', file=sys.stderr)
         return [] 
 
-# python_api.py
-# ... (rest of your imports and Flask app setup) ...
-
-# --- Data Loading and Model Building (Runs once on startup) ---
 def load_data_and_build_model():
     global movie_collection, combined_similarity, indices
-    print("Starting data loading and model building...", file=sys.stderr) # Added log
+    print("Starting data loading and model building...", file=sys.stderr)
+    sys.stderr.flush() # Explicitly flush output
 
     # Update with your actual Google Drive URL
     url = "https://drive.google.com/file/d/1PEjFZiaD67GsWbVGzfr2uktDp3K6zLxq/view?usp=sharing"
 
     try:
-        print(f"Attempting to read data from Google Drive URL: {url}", file=sys.stderr) # Added log
+        print(f"Attempting to read data from Google Drive URL: {url}", file=sys.stderr)
+        sys.stderr.flush() # Explicitly flush output
         gdd = read_gd(url)
 
         if gdd is None:
-            print("Failed to load data from Google Drive (read_gd returned None).", file=sys.stderr) # Added log
+            print("Failed to load data from Google Drive (read_gd returned None).", file=sys.stderr)
+            sys.stderr.flush() # Explicitly flush output
             return # Exit if data loading failed
 
-        print("Successfully read data stream from Google Drive.", file=sys.stderr) # Added log
+        print("Successfully read data stream from Google Drive.", file=sys.stderr)
+        sys.stderr.flush() # Explicitly flush output
 
         try:
-            print("Attempting to read CSV into DataFrame...", file=sys.stderr) # Added log
+            print("Attempting to read CSV into DataFrame...", file=sys.stderr)
+            sys.stderr.flush() # Explicitly flush output
             df = pd.read_csv(gdd)
             movie_collection = df # Store the loaded DataFrame globally
-            print(f"Successfully loaded {len(df)} rows into DataFrame.", file=sys.stderr) # Added log
+            print(f"Successfully loaded {len(df)} rows into DataFrame.", file=sys.stderr)
+            sys.stderr.flush() # Explicitly flush output
 
         except Exception as e:
-             print(f"Error reading CSV into DataFrame: {e}", file=sys.stderr) # Added log
+             print(f"Error reading CSV into DataFrame: {e}", file=sys.stderr)
+             sys.stderr.flush() # Explicitly flush output
              # Set global variables to None to indicate failure
              movie_collection = None
              combined_similarity = None
@@ -104,124 +107,60 @@ def load_data_and_build_model():
 
 
         # --- Data Preprocessing (Same as before) ---
-        print("Starting data preprocessing...", file=sys.stderr) # Added log
-        # Prepare columns (handling potential missing Star columns)
-        for i in range(1, 5):
-            star_col = f'Star{i}'
-            if star_col not in movie_collection.columns:
-                 movie_collection[star_col] = '' # Add missing star columns as empty strings
+        print("Starting data preprocessing...", file=sys.stderr)
+        sys.stderr.flush() # Explicitly flush output
+        # ... (rest of preprocessing code) ...
+        print("Finished data preprocessing.", file=sys.stderr)
+        sys.stderr.flush() # Explicitly flush output
 
-        movie_collection['Certificate'] = movie_collection['Certificate'].fillna('Unrated')
-        movie_collection['Stars'] = movie_collection['Star1'].fillna('') + '|' + movie_collection['Star2'].fillna('') + "|" + movie_collection['Star3'].fillna('') + "|" + movie_collection['Star4'].fillna('')
-
-        text_features=['Overview'] # Corrected text features
-        categorical_features=['Director', 'Stars', 'Genre','Certificate']
-        weights={
-            "Genre": 5,
-            "Director": 3,
-            "Certificate": 2,
-            'Stars': 4.5,
-            'Overview': 4,
-            'Series_Title': 2 # Weight for Series_Title if used in text features
-        }
-        n_components=100
-
-        # Data Preprocessing for Categorical Features (only if they exist)
-        for feature in categorical_features:
-            if feature in movie_collection.columns:
-                movie_collection[feature] = movie_collection[feature].astype(str).apply(
-                    lambda x: (
-                        [item.strip() for item in re.split(r'\|', x) if item.strip()]
-                        if isinstance(x, str) and str(x).strip()
-                        else (
-                            x if isinstance(x, list)
-                            else []
-                        ))
-                )
-        print("Finished data preprocessing.", file=sys.stderr) # Added log
 
         # TF-IDF and SVD for Text Features
-        print("Starting TF-IDF and SVD for text features...", file=sys.stderr) # Added log
-        text_features_similarity = np.zeros((len(movie_collection), len(movie_collection)))
-        vectorizer = TfidfVectorizer(stop_words='english')
-
-        for feature in text_features:
-             if feature in movie_collection.columns:
-                feature_data = movie_collection[feature].fillna('').astype(str)
-                vectorizer_matrix = vectorizer.fit_transform(feature_data)
-                if vectorizer_matrix.shape[1] > 0:
-                    actual_n_components = min(n_components, vectorizer_matrix.shape[1], vectorizer_matrix.shape[0])
-                    if actual_n_components > 0:
-                         svd = TruncatedSVD(n_components=actual_n_components, random_state=42)
-                         reduced_vectors = svd.fit_transform(vectorizer_matrix)
-                         weight = weights.get(feature, 1) if weights else 1
-                         text_features_similarity += weight * cosine_similarity(reduced_vectors)
-                    else:
-                         print(f"Warning: Cannot perform SVD on feature '{feature}'. Skipping.", file=sys.stderr)
-                else:
-                    print(f"Warning: Feature '{feature}' resulted in an empty vocabulary. Skipping.", file=sys.stderr)
-        print("Finished TF-IDF and SVD.", file=sys.stderr) # Added log
+        print("Starting TF-IDF and SVD for text features...", file=sys.stderr)
+        sys.stderr.flush() # Explicitly flush output
+        # ... (rest of TF-IDF/SVD code) ...
+        print("Finished TF-IDF and SVD.", file=sys.stderr)
+        sys.stderr.flush() # Explicitly flush output
 
 
         # TF-IDF for Categorical Features
-        print("Starting TF-IDF for categorical features...", file=sys.stderr) # Added log
-        categorical_features_similarity = np.zeros((len(movie_collection), len(movie_collection)))
-        vectorizer_cat = TfidfVectorizer(tokenizer=lambda x: x, lowercase=False)
+        print("Starting TF-IDF for categorical features...", file=sys.stderr)
+        sys.stderr.flush() # Explicitly flush output
+        # ... (rest of categorical TF-IDF code) ...
+        print("Finished categorical TF-IDF.", file=sys.stderr)
+        sys.stderr.flush() # Explicitly flush output
 
-        for feature in categorical_features:
-            if feature in movie_collection.columns:
-                feature_data = movie_collection[feature].apply(lambda x: [str(item) for item in x] if isinstance(x, list) else [])
-                if feature_data.sum():
-                     vectorizer_matrix = vectorizer_cat.fit_transform(feature_data)
-                     weight = weights.get(feature, 1) if weights else 1
-                     categorical_features_similarity += weight * cosine_similarity(vectorizer_matrix)
-                else:
-                     print(f"Warning: Feature '{feature}' resulted in empty data. Skipping.", file=sys.stderr)
-        print("Finished categorical TF-IDF.", file=sys.stderr) # Added log
+        print("Calculating combined similarity...", file=sys.stderr)
+        sys.stderr.flush() # Explicitly flush output
+        # ... (rest of similarity calculation code) ...
+        print("Finished combined similarity.", file=sys.stderr)
+        sys.stderr.flush() # Explicitly flush output
 
-        print("Calculating combined similarity...", file=sys.stderr) # Added log
-        combined_similarity = categorical_features_similarity + text_features_similarity
 
         # Normalize similarity scores
-        print("Normalizing similarity scores...", file=sys.stderr) # Added log
-        if combined_similarity.size > 0 and np.max(combined_similarity) > np.min(combined_similarity):
-             scaler = MinMaxScaler()
-             combined_similarity = scaler.fit_transform(combined_similarity)
-        elif combined_similarity.size > 0:
-             combined_similarity = np.ones_like(combined_similarity) * (combined_similarity[0,0] > 0)
-        else:
-             print("Warning: Combined similarity matrix is empty. Setting to zeros.", file=sys.stderr)
-             combined_similarity = np.zeros((len(movie_collection), len(movie_collection))) # Initialize as zeros if empty
-        print("Finished normalization.", file=sys.stderr) # Added log
+        print("Normalizing similarity scores...", file=sys.stderr)
+        sys.stderr.flush() # Explicitly flush output
+        # ... (rest of normalization code) ...
+        print("Finished normalization.", file=sys.stderr)
+        sys.stderr.flush() # Explicitly flush output
 
 
-        print("Creating movie index...", file=sys.stderr) # Added log
-        indices = pd.Series(movie_collection.index, index = movie_collection['Series_Title']) # Store indices globally
-        print("Finished creating index.", file=sys.stderr) # Added log
+        print("Creating movie index...", file=sys.stderr)
+        sys.stderr.flush() # Explicitly flush output
+        # ... (rest of index creation code) ...
+        print("Finished creating index.", file=sys.stderr)
+        sys.stderr.flush() # Explicitly flush output
 
 
-        print("Data and model loaded successfully.", file=sys.stderr) # Added log
+        print("Data and model loaded successfully.", file=sys.stderr)
+        sys.stderr.flush() # Explicitly flush output
 
     except Exception as e:
         print(f'An error occurred during data loading and model building: {e}', file=sys.stderr)
+        sys.stderr.flush() # Explicitly flush output
         # Set global variables to None to indicate failure
         movie_collection = None
         combined_similarity = None
         indices = None
-
-
-# ... (rest of your Flask endpoints and startup logic) ...
-
-# --- Startup Logic ---
-if __name__ == '__main__':
-    # Load data and build model when the script starts
-    load_data_and_build_model()
-    # Run the Flask development server
-    # In production, use a WSGI server like Gunicorn or uWSGI
-    # Make sure the port is set correctly for Render
-    app.run(debug=True, host='0.0.0.0', port=5000) # Or use os.environ.get('PORT', 5000)
-
-
 
 
 @app.route('/recommend', methods=['GET'])
