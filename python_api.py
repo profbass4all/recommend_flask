@@ -1,12 +1,8 @@
-# python_api.py
 import sys
-print("Python script started!", file=sys.stderr)
 sys.stderr.flush()
 
 from flask import Flask, request, jsonify
 import pandas as pd
-# Removed: from io import StringIO
-# Removed: import requests
 
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -21,20 +17,16 @@ print("All imports successful!", file=sys.stderr)
 sys.stderr.flush()
 
 
-# --- Flask App Initialization ---
 app = Flask(__name__)
 
-# --- Global variables to store data and model (loaded once on startup) ---
 movie_collection = None
 combined_similarity = None
 indices = None
 
-# --- Define the local CSV file path ---
-# Assuming the CSV file is in the same directory as python_api.py
-CSV_FILE_PATH = os.path.join(os.path.dirname(__file__), 'imdb_top_1000.csv') # Replace 'imdb_top_1000.csv' with the actual filename
 
-# --- Modified Recommendation Logic (Callable function) ---
-def get_recommendations_from_loaded_data(movie_title, movie_collection, combined_similarity, indices, top_n=15):
+CSV_FILE_PATH = os.path.join(os.path.dirname(__file__), 'imdb_top_1000.csv') 
+
+def get_recommendations_from_loaded_data(movie_title, movie_collection, combined_similarity, indices, top_n=6):
     if movie_collection is None or combined_similarity is None or indices is None:
         print("Error: Data or model not loaded.", file=sys.stderr)
         sys.stderr.flush()
@@ -69,37 +61,29 @@ def get_recommendations_from_loaded_data(movie_title, movie_collection, combined
         return []
 
 
-# --- Data Loading and Model Building (Runs once on startup) ---
 def load_data_and_build_model():
     global movie_collection, combined_similarity, indices
-    print("Starting data loading and model building...", file=sys.stderr)
     sys.stderr.flush()
 
     try:
-        print(f"Attempting to read CSV from local file: {CSV_FILE_PATH}", file=sys.stderr)
         sys.stderr.flush()
 
         if not os.path.exists(CSV_FILE_PATH):
-             print(f"Error: Local CSV file not found at {CSV_FILE_PATH}", file=sys.stderr)
-             sys.stderr.flush()
-             movie_collection = None
-             combined_similarity = None
-             indices = None
-             return
+            sys.stderr.flush()
+            movie_collection = None
+            combined_similarity = None
+            indices = None
+            return
 
         df = pd.read_csv(CSV_FILE_PATH)
         movie_collection = df
-        print(f"Successfully loaded {len(df)} rows into DataFrame from local file.", file=sys.stderr)
         sys.stderr.flush()
 
 
-        # --- Data Preprocessing (Same as before) ---
-        print("Starting data preprocessing...", file=sys.stderr)
-        sys.stderr.flush()
         for i in range(1, 5):
             star_col = f'Star{i}'
             if star_col not in movie_collection.columns:
-                 movie_collection[star_col] = ''
+                movie_collection[star_col] = ''
 
         movie_collection['Certificate'] = movie_collection['Certificate'].fillna('Unrated')
         movie_collection['Stars'] = movie_collection['Star1'].fillna('') + '|' + movie_collection['Star2'].fillna('') + "|" + movie_collection['Star3'].fillna('') + "|" + movie_collection['Star4'].fillna('')
@@ -127,13 +111,7 @@ def load_data_and_build_model():
                             else []
                         ))
                 )
-        print("Finished data preprocessing.", file=sys.stderr)
-        sys.stderr.flush()
 
-
-        # TF-IDF and SVD for Text Features
-        print("Starting TF-IDF and SVD for text features...", file=sys.stderr)
-        sys.stderr.flush()
         text_features_similarity = np.zeros((len(movie_collection), len(movie_collection)))
         vectorizer = TfidfVectorizer(stop_words='english')
 
@@ -158,8 +136,7 @@ def load_data_and_build_model():
         sys.stderr.flush()
 
 
-        # TF-IDF for Categorical Features
-        print("Starting TF-IDF for categorical features...", file=sys.stderr)
+        
         sys.stderr.flush()
         categorical_features_similarity = np.zeros((len(movie_collection), len(movie_collection)))
         vectorizer_cat = TfidfVectorizer(tokenizer=lambda x: x, lowercase=False)
@@ -168,47 +145,28 @@ def load_data_and_build_model():
             if feature in movie_collection.columns:
                 feature_data = movie_collection[feature].apply(lambda x: [str(item) for item in x] if isinstance(x, list) else [])
                 if feature_data.sum():
-                     vectorizer_matrix = vectorizer_cat.fit_transform(feature_data)
-                     weight = weights.get(feature, 1) if weights else 1
-                     categorical_features_similarity += weight * cosine_similarity(vectorizer_matrix)
+                    vectorizer_matrix = vectorizer_cat.fit_transform(feature_data)
+                    weight = weights.get(feature, 1) if weights else 1
+                    categorical_features_similarity += weight * cosine_similarity(vectorizer_matrix)
                 else:
-                     print(f"Warning: Feature '{feature}' resulted in empty data. Skipping.", file=sys.stderr)
-                     sys.stderr.flush()
+                    print(f"Warning: Feature '{feature}' resulted in empty data. Skipping.", file=sys.stderr)
+                    sys.stderr.flush()
         print("Finished categorical TF-IDF.", file=sys.stderr)
         sys.stderr.flush()
 
-        print("Calculating combined similarity...", file=sys.stderr)
-        sys.stderr.flush()
+        
         combined_similarity = categorical_features_similarity + text_features_similarity
-        print("Finished combined similarity.", file=sys.stderr)
-        sys.stderr.flush()
-
-
-        # Normalize similarity scores
-        print("Normalizing similarity scores...", file=sys.stderr)
-        sys.stderr.flush()
+    
         if combined_similarity.size > 0 and np.max(combined_similarity) > np.min(combined_similarity):
-             scaler = MinMaxScaler()
-             combined_similarity = scaler.fit_transform(combined_similarity)
+            scaler = MinMaxScaler()
+            combined_similarity = scaler.fit_transform(combined_similarity)
         elif combined_similarity.size > 0:
              combined_similarity = np.ones_like(combined_similarity) * (combined_similarity[0,0] > 0)
         else:
-             print("Warning: Combined similarity matrix is empty. Setting to zeros.", file=sys.stderr)
-             sys.stderr.flush()
-             combined_similarity = np.zeros((len(movie_collection), len(movie_collection)))
-        print("Finished normalization.", file=sys.stderr)
-        sys.stderr.flush()
-
-
-        print("Creating movie index...", file=sys.stderr)
-        sys.stderr.flush()
+            sys.stderr.flush()
+            combined_similarity = np.zeros((len(movie_collection), len(movie_collection)))
+        
         indices = pd.Series(movie_collection.index, index = movie_collection['Series_Title'])
-        print("Finished creating index.", file=sys.stderr)
-        sys.stderr.flush()
-
-
-        print("Data and model loaded successfully.", file=sys.stderr)
-        sys.stderr.flush()
 
     except Exception as e:
         print(f'An error occurred during data loading and model building: {e}', file=sys.stderr)
@@ -216,17 +174,6 @@ def load_data_and_build_model():
         movie_collection = None
         combined_similarity = None
         indices = None
-
-
-# ... (rest of your Flask endpoints) ...
-
-
-# --- Startup Logic ---
-
-# ... (rest of your Flask endpoints and startup logic) ...
-
-# --- Startup Logic ---
-# Set debug=False for production
 
 @app.route('/recommend', methods=['GET'])
 def recommend():
@@ -273,12 +220,8 @@ def get_all_movies():
 
 print("About to call load_data_and_build_model()", file=sys.stderr)
 sys.stderr.flush()
-load_data_and_build_model() # This will now run when the module is imported by Gunicorn
-
+load_data_and_build_model() 
 if __name__ == '__main__':
-    # This block is primarily for running the script directly for local testing
-    # Gunicorn does NOT execute this block
-    print("Running Flask development server (This should not appear in Render logs when using Gunicorn)", file=sys.stderr)
     sys.stderr.flush()
     import os
     port = int(os.environ.get('PORT', 5000))
