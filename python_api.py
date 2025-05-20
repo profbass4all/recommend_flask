@@ -18,21 +18,21 @@ movie_collection = None
 combined_similarity = None
 indices = None
 
-def read_gd(sharingurl):
-    try:
-        file_id = sharingurl.split('/')[-2]
-        download_url = 'https://drive.google.com/uc?export=download&id=' + file_id
+# def read_gd(sharingurl):
+#     try:
+#         file_id = sharingurl.split('/')[-2]
+#         download_url = 'https://drive.google.com/uc?export=download&id=' + file_id
         
-        response = requests.get(download_url)
-        response.raise_for_status() 
-        csv_raw = StringIO(response.text)
-        return csv_raw
-    except Exception as e:
-        print(f"Error reading Google Drive file: {e}", file=sys.stderr)
-        return None 
+#         response = requests.get(download_url)
+#         response.raise_for_status() 
+#         csv_raw = StringIO(response.text)
+#         return csv_raw
+#     except Exception as e:
+#         print(f"Error reading Google Drive file: {e}", file=sys.stderr)
+#         return None 
 
 
-def get_recommendations_from_loaded_data(movie_title, movie_collection, combined_similarity, indices, top_n=15):
+def get_recommendations_from_loaded_data(movie_title, movie_collection, combined_similarity, indices, top_n=6):
     if movie_collection is None or combined_similarity is None or indices is None:
         print("Error: Data or model not loaded.", file=sys.stderr)
         return [] 
@@ -72,15 +72,8 @@ def load_data_and_build_model():
     global movie_collection, combined_similarity, indices
     print("Loading data and building model...", file=sys.stderr)
 
-    url = "https://drive.google.com/file/d/1PEjFZiaD67GsWbVGzfr2uktDp3K6zLxq/view?usp=sharing"
-    gdd = read_gd(url)
-
-    if gdd is None:
-        print("Failed to load data from Google Drive.", file=sys.stderr)
-        return 
-
     try:
-        df = pd.read_csv(gdd)
+        df = pd.read_csv('./imdb_top_1000.csv')
         movie_collection = df 
 
         
