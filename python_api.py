@@ -240,6 +240,51 @@ def load_data_and_build_model():
 # ... (rest of your Flask endpoints and startup logic) ...
 
 # --- Startup Logic ---
+# Set debug=False for production
+
+@app.route('/recommend', methods=['GET'])
+def recommend():
+    movie_title = request.args.get('title') 
+
+    if not movie_title:
+        return jsonify({"error": "Missing movie title query parameter"}), 400
+
+    recommendations = get_recommendations_from_loaded_data(
+        movie_title,
+        movie_collection,
+        combined_similarity,
+        indices
+    )
+
+    if recommendations is None: 
+        return jsonify({"error": "Internal server error during recommendation lookup"}), 500
+
+    if not recommendations: 
+        if indices is not None and movie_title not in indices:
+            return jsonify({"error": f"Movie '{movie_title}' not found"}), 404
+        else:
+            return jsonify({"message": f"No recommendations found for '{movie_title}'"}), 200
+
+
+    return jsonify(recommendations), 200
+
+
+@app.route('/movies', methods=['GET'])
+def get_all_movies():
+    if movie_collection is None:
+        return jsonify({"error": "Movie data not loaded"}), 500
+
+    try:
+        all_movies_columns = ['Series_Title', 'Released_Year', 'Certificate', 'Runtime', 'Genre', 'IMDB_Rating', 'Overview', 'Director', 'Star1', 'Star2', 'Star3', 'Star4', 'No_of_Votes', 'Gross']
+        all_movies_columns = [col for col in all_movies_columns if col in movie_collection.columns]
+
+        all_movies_data = movie_collection[all_movies_columns].where(pd.notnull(movie_collection[all_movies_columns]), None).to_dict(orient='records')
+        return jsonify(all_movies_data), 200
+    except Exception as e:
+        print(f"Error getting all movies: {e}", file=sys.stderr)
+        return jsonify({"error": "Internal server error getting all movies"}), 500
+
+
 if __name__ == '__main__':
     # Load data and build model when the script starts
     load_data_and_build_model()
@@ -249,4 +294,4 @@ if __name__ == '__main__':
     # Use os.environ.get('PORT', 5000) to get the port assigned by Render
     import os
     port = int(os.environ.get('PORT', 5000))
-    app.run(debug=False, host='0.0.0.0', port=port) # Set debug=False for production
+    app.run(debug=False, host='0.0.0.0', port=port) 
